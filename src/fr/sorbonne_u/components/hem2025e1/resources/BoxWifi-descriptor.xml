@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<control-adapter
+    xmlns="http://www.sorbonne-universite.fr/alasca/control-adapter"
+    uid="BOX-WIFI-001"
+    offered="fr.sorbonne_u.components.hem2025.bases.AdjustableCI">
+
+  <consumption nominal="12.0" min="0" max="12.0"/>
+  
+  <required>fr.sorbonne_u.exceptions.PreconditionException</required>
+  <required>fr.sorbonne_u.components.hem2025.bases.AdjustableCI</required>
+  <required>fr.sorbonne_u.components.hem2025e1.equipement.Wifi.BoxWifiImplementationI</required>
+
+  <instance-var modifiers="protected static final" type="int" name="MAX_MODE"
+                static-init="3"/>
+  <instance-var modifiers="protected" type="int" name="currentMode"
+                static-init="0"/>
+  <instance-var modifiers="protected" type="boolean" name="isSuspended"
+                static-init="false"/>
+
+  <!-- Méthode getBoxWifiOffering équivalente -->
+  <internal modifiers="protected" type="fr.sorbonne_u.components.hem2025e1.equipement.Wifi.BoxWifiImplementationI"
+            name="getBoxWifiOffering">
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      return (fr.sorbonne_u.components.hem2025e1.equipement.Wifi.BoxWifiImplementationI) this.offering;
+    ]]></body>
+  </internal>
+
+  <!-- Méthode computePowerLevel -->
+  <internal modifiers="protected" type="double"
+            name="computePowerLevel">
+    <parameter type="int" name="modeIndex"/>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (modeIndex < 0 || modeIndex > MAX_MODE) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("modeIndex valide");
+      }
+      switch (modeIndex) {
+        case 0: return 0.0;
+        case 1: return 8.0;
+        case 2: return 10.0;
+        case 3: return 12.0;
+        default: return 0.0;
+      }
+    ]]></body>
+  </internal>
+
+  <!-- Méthode applyMode -->
+  <internal modifiers="protected" type="void"
+            name="applyMode">
+    <parameter type="int" name="modeIndex"/>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      fr.sorbonne_u.components.hem2025e1.equipement.Wifi.BoxWifiImplementationI wifi = getBoxWifiOffering();
+      switch (modeIndex) {
+        case 0:
+          wifi.turnOff();
+          break;
+        case 1:
+          wifi.turnOn();
+          wifi.deactivateWifi();
+          break;
+        case 2:
+          wifi.turnOn();
+          wifi.activateWifi();
+          break;
+        case 3:
+          wifi.turnOn();
+          wifi.activateWifi();
+          break;
+      }
+      currentMode = modeIndex;
+    ]]></body>
+  </internal>
+
+  <!-- maxMode -->
+  <maxMode>
+    <body><![CDATA[return MAX_MODE;]]></body>
+  </maxMode>
+
+  <!-- upMode -->
+  <upMode>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (suspended()) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("!suspended()");
+      }
+      if (currentMode >= MAX_MODE) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("currentMode < MAX_MODE");
+      }
+      if (currentMode < MAX_MODE) {
+        currentMode++;
+        applyMode(currentMode);
+        return true;
+      }
+      return false;
+    ]]></body>
+  </upMode>
+
+  <!-- downMode -->
+  <downMode>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (suspended()) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("!suspended()");
+      }
+      if (currentMode <= 0) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("currentMode > 0");
+      }
+      if (currentMode > 0) {
+        currentMode--;
+        applyMode(currentMode);
+        return true;
+      }
+      return false;
+    ]]></body>
+  </downMode>
+
+  <!-- setMode -->
+  <setMode>
+    <parameter name="modeIndex" type="int"/>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (suspended()) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("!suspended()");
+      }
+      if (modeIndex < 0 || modeIndex > MAX_MODE) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("modeIndex valide");
+      }
+      if (modeIndex >= 0 && modeIndex <= MAX_MODE) {
+        currentMode = modeIndex;
+        applyMode(currentMode);
+        return true;
+      }
+      return false;
+    ]]></body>
+  </setMode>
+
+  <!-- currentMode -->
+  <currentMode>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (suspended()) {
+        return 0;
+      } else {
+        return currentMode;
+      }
+    ]]></body>
+  </currentMode>
+
+  <!-- getModeConsumption -->
+  <getModeConsumption>
+    <parameter name="modeIndex" type="int"/>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (modeIndex < 0 || modeIndex > MAX_MODE) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("modeIndex valide");
+      }
+      return computePowerLevel(modeIndex);
+    ]]></body>
+  </getModeConsumption>
+
+  <!-- suspended -->
+  <suspended>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[return isSuspended;]]></body>
+  </suspended>
+
+  <!-- suspend -->
+  <suspend>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (suspended()) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("!suspended()");
+      }
+      getBoxWifiOffering().turnOff();
+      isSuspended = true;
+      return true;
+    ]]></body>
+  </suspend>
+
+  <!-- resume -->
+  <resume>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      if (!suspended()) {
+        throw new fr.sorbonne_u.exceptions.PreconditionException("suspended()");
+      }
+      applyMode(currentMode);
+      isSuspended = false;
+      return true;
+    ]]></body>
+  </resume>
+
+  <!-- emergency -->
+  <emergency>
+    <thrown>java.lang.Exception</thrown>
+    <body><![CDATA[
+      switch (currentMode) {
+        case 0: return 0.0;
+        case 1: return 0.3;
+        case 2: return 0.5;
+        case 3: return 0.8;
+        default: return 0.0;
+      }
+    ]]></body>
+  </emergency>
+
+</control-adapter>
